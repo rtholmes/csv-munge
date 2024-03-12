@@ -6,6 +6,7 @@
     "@types/csv-parse": "^1.2.2",
     "@types/node": "^20.11.25",
     "csv-parse": "^5.5.5",
+    "fs-extra": "^11.2.0",
     "typescript": "^5.4.2"
   }
 }

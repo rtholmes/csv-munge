@@ -1,5 +1,5 @@
 import {parse} from "csv-parse";
-import * as fs from "fs";
+import * as fs from "fs-extra";
 
 
 /**
@@ -38,7 +38,7 @@ class CSVMunger {
 	 * @param {CSVShape[]} shape
 	 * @return {Promise<DataRow[]>}
 	 */
-	public async munge(shape: CSVShape[]): Promise<DataRow[]> {
+	public async munge(shape: CSVShape[], valuesToIgnore: string[]): Promise<DataRow[]> {
 		console.log("Munging CSV...");
 
 		const ret: DataRow[] = [];
@@ -56,29 +56,31 @@ class CSVMunger {
 		const GRADE_HEADER = "FinalExamGrade";
 
 		for (const row of rawCSV) {
-			const dataRow: DataRow = [];
 
+			const dataRow: DataRow = [];
 			for (const s of shape) {
+
 				// make sure required header exists
 				if (typeof row[s.csvColName] === "undefined") {
 					// TODO: decide if this should be an error
 					console.log("CSVMunger::munge(..) - column: " + s.csvColName + " missing from: " + JSON.stringify(row));
 				} else {
 					// if data exists, add it to the row
-					for (const s of shape) {
-						const data: DataShape = {name: "", value: ""};
-						let rawValue = row[s.csvColName];
-						rawValue = rawValue.trim();
-						// if the value is empty, we don't need to add it
-						if (rawValue.length > 0) {
-							if (s.kind === "number") {
-								data.value = Number(rawValue);
-							} else {
-								data.value = rawValue;
-							}
-							data.name = s.outName;
-							dataRow.push(data);
+					const data: DataShape = {name: "", value: ""};
+					let rawValue = row[s.csvColName];
+					rawValue = rawValue.trim();
+					rawValue.replaceAll("\n", " ");
+					// don't add the value if:
+					// * it is empty
+					// * it is something we are explicitly ignoring
+					if (rawValue.length > 0 && valuesToIgnore.includes(rawValue.toLowerCase()) === false) {
+						if (s.kind === "number") {
+							data.value = Number(rawValue);
+						} else {
+							data.value = rawValue;
 						}
+						data.name = s.outName;
+						dataRow.push(data);
 					}
 				}
 			}
@@ -87,9 +89,8 @@ class CSVMunger {
 			if (dataRow.length > 0) {
 				const id: DataShape = {name: "csvRowNum", value: ret.length};
 				dataRow.unshift(id);
+				ret.push(dataRow); // only add a row if it has _some_ data
 			}
-
-			ret.push(dataRow);
 		}
 
 		console.log("ExamCSVUploader::readCSV(..) - done; # rows: " + ret.length);
@@ -130,14 +131,28 @@ async function qualtrics310_2022W2_AISurvey() {
 	const inF = "data/cpsc310_23w1_exit-survey.csv";
 	const outF = "data/output.csv";
 	const csvm = new CSVMunger(inF, outF);
+	const valuesToIgnore = ["no", "no.", "nope", "nope.", "none", "n/a", "n/a.", "na",
+		"-", "yes", "yes.", "no concerns", "no concerns."];
 
 	const csvShapes: CSVShape[] = [
-		{csvColName: "Q3", outName: "InfluenceUnderstanding", kind: "string"},
-		{csvColName: "Q4", outName: "AIConcerns", kind: "string"}
+		{csvColName: "Q3", outName: "IU", kind: "string"}, // InfluenceUnderstanding
+		{csvColName: "Q4", outName: "AIC", kind: "string"} // AIConcerns
 	];
 
-	const rows = await csvm.munge(csvShapes);
-	console.table(rows);
+	const rows = await csvm.munge(csvShapes, valuesToIgnore);
+	await fs.writeJson(outF, rows, {spaces: 2});
+
+	// convert into strings for printing cards for card sort
+	let strOut = "";
+	for (const row of rows) {
+		const id = row[0].value;
+		for (const col of row) {
+			if (col.name !== "csvRowNum") {
+				strOut += col.value + " (r" + id + "_" + col.name + ")\n\n\n";
+			}
+		}
+	}
+	console.log(strOut);
 }
 
 
