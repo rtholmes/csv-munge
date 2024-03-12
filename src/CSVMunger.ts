@@ -127,20 +127,26 @@ class CSVMunger {
 
 }
 
+/**
+ * CPSC 310 2022W2 End-of-term AI survey. This method post-processes
+ * the Qualtrics CSV output to prepare it for a card sort.
+ *
+ * Data: https://ubc.yul1.qualtrics.com/responses/#/surveys/SV_7OqooK2ep2CV5b0
+ */
 async function qualtrics310_2022W2_AISurvey() {
 	const inF = "data/cpsc310_23w1_exit-survey.csv";
-	const outF = "data/output.csv";
-	const csvm = new CSVMunger(inF, outF);
+	const outF = "data/output.json";
 	const valuesToIgnore = ["no", "no.", "nope", "nope.", "none", "n/a", "n/a.", "na",
 		"-", "yes", "yes.", "no concerns", "no concerns."];
-
 	const csvShapes: CSVShape[] = [
 		{csvColName: "Q3", outName: "IU", kind: "string"}, // InfluenceUnderstanding
 		{csvColName: "Q4", outName: "AIC", kind: "string"} // AIConcerns
 	];
 
-	const rows = await csvm.munge(csvShapes, valuesToIgnore);
-	await fs.writeJson(outF, rows, {spaces: 2});
+	// convert the CSV into DataRow objects
+	const munger = new CSVMunger(inF, outF);
+	const rows = await munger.munge(csvShapes, valuesToIgnore);
+	await fs.writeJson(outF, rows, {spaces: 2}); // write processed rows
 
 	// convert into strings for printing cards for card sort
 	let strOut = "";
@@ -155,6 +161,35 @@ async function qualtrics310_2022W2_AISurvey() {
 	console.log(strOut);
 }
 
+/**
+ * Sample processing method as an exemplar for getting started.
+ */
+async function testCSV() {
+	const inF = "data/test.csv";
+	const outF = "data/testOutput.json";
+	const valuesToIgnore = ["no", "n/a", "yes"];
+	const csvShapes: CSVShape[] = [
+		{csvColName: "Col1", outName: "Data1", kind: "string"},
+		{csvColName: "Col2", outName: "Data2", kind: "string"}
+	];
+
+	// convert the CSV into DataRow objects
+	const munger = new CSVMunger(inF, outF);
+	const rows = await munger.munge(csvShapes, valuesToIgnore);
+	await fs.writeJson(outF, rows, {spaces: 2}); // write processed rows
+
+	// convert into strings for printing cards for card sort
+	let strOut = "";
+	for (const row of rows) {
+		const id = row[0].value;
+		for (const col of row) {
+			if (col.name !== "csvRowNum") {
+				strOut += col.value + " (r" + id + "_" + col.name + ")\n\n\n";
+			}
+		}
+	}
+	console.log(strOut);
+}
 
 // call async function
 // easiest to just create private async functions for each survey rather
@@ -163,7 +198,8 @@ async function qualtrics310_2022W2_AISurvey() {
 (async () => {
 	try {
 		console.log("CSVMunger::main() - start");
-		await qualtrics310_2022W2_AISurvey();
+		// await qualtrics310_2022W2_AISurvey();
+		await testCSV();
 		console.log("CSVMunger::main() - done");
 	} catch (e) {
 		// Deal with the fact the chain failed
