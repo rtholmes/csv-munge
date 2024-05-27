@@ -50,11 +50,6 @@ class CSVMunger {
 		const rawCSV = await CSVMunger.parseCSV(this.inputCSV) as any[];
 		console.log("ExamCSVUploader::readCSV(..) - read");
 
-		// NOTE: while it would be better for these to not be hard-coded,
-		// we can also just make sure the columns have the right name in Qualtrics
-		const STUDENT_NUMBER_HEADER = "StudentNumber";
-		const GRADE_HEADER = "FinalExamGrade";
-
 		for (const row of rawCSV) {
 
 			const dataRow: DataRow = [];
