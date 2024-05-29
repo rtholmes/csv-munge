@@ -156,6 +156,41 @@ async function qualtrics310_2022W2_AISurvey() {
 	console.log(strOut);
 }
 
+async function bucket_grading_survey() {
+	const inF = "data/bucket-grading.csv";
+	const outF = "data/bucket-output.json";
+	// const valuesToIgnore = [];
+	const valuesToIgnore = ["no", "no.", "nope", "nope.", "none", "n/a", "n/a.", "na",
+		"-", "yes", "yes.", "no concerns", "no concerns."];
+	const csvShapes: CSVShape[] = [
+		{csvColName: "Q2", outName: "CodeQual", kind: "string"}, // How did you assess code quality? (i.e. local test vs autotest)
+		// {csvColName: "Q6", outName: "Lec", kind: "string"}, // How well did project material relate to lecture material?
+		// {csvColName: "Q11", outName: "NonCode", kind: "string"}, // Did the non-code tasks affect your implementation strategy in subsequent deliverables?
+		// {csvColName: "Q21", outName: "Smoke", kind: "string"}, // smoke test feedback: how did you use?
+		// {csvColName: "Q27", outName: "Addtl", kind: "string"}, // additional feedback: how did you use?
+		// {csvColName: "Q5", outName: "BucketStrat", kind: "string" }, // how did bucket grading influence your strategy?
+		// {csvColName: "Q28", outName: "BucketInterp", kind: "string"}, // how did you interpret your bucket label? (i.e. as a bucket or label?)
+		// {csvColName: "Q10", outName: "BucketGeneral", kind: "string"}, // general positives/negatives from bucket grading
+	];
+
+	// convert the CSV into DataRow objects
+	const munger = new CSVMunger(inF, outF);
+	const rows = await munger.munge(csvShapes, valuesToIgnore);
+	await fs.writeJson(outF, rows, {spaces: 2}); // write processed rows
+
+	// convert into strings for printing cards for card sort
+	let strOut = "";
+	for (const row of rows) {
+		const id = row[0].value;
+		for (const col of row) {
+			if (col.name !== "csvRowNum") {
+				strOut += col.value + " (r" + id + "_" + col.name + ")\n\n\n";
+			}
+		}
+	}
+	console.log(strOut);
+}
+
 /**
  * Sample processing method as an exemplar for getting started.
  */
@@ -194,7 +229,7 @@ async function testCSV() {
 	try {
 		console.log("CSVMunger::main() - start");
 		// await qualtrics310_2022W2_AISurvey();
-		await testCSV();
+		await bucket_grading_survey();
 		console.log("CSVMunger::main() - done");
 	} catch (e) {
 		// Deal with the fact the chain failed
@@ -202,3 +237,5 @@ async function testCSV() {
 	}
 })();
 
+
+// ResponseID,ResponseSet,IPAddress,StartDate,EndDate,RecipientLastName,RecipientFirstName,RecipientEmail,ExternalDataReference,Finished,Status,  Study title: Improving Automated Assessments with Bucket Grading Project Investigator: Professo...,Thank you for participating in the survey. You will be asked to provide your CWL at the end of th...,"What techniques, tools, or methodologies did you use to assess the overall quality of your code s...","When encountering an issue, defect, or feedback, what did you do to resolve the issue in general?...",How well did material covered in the project (code and non-code) reflect the material in lecture...,"What are some of the most important or valuable concepts, techniques, or learnings, you learned f...",Did the non-code tasks affect your implementation strategy or behaviour in subsequent deliverable...,How did you approach managing and maintaining your code’s maintainability throughout the project?...,"Given the following options detailing modifications to AutoTest, which of the following would you...",Describe why you chose the option you did,"For each of the following pieces of AutoTest feedback, please describe if you used it and how hel...", ,Please rate your experiences using the #check command feedback-I used this feedback frequently,Please rate your experiences using the #check command feedback-This feedback was useful,How did you use this feedback? What was it especially helpful or not helpful for?, ,Please rate your experiences using the smoke test feedback-I used this feedback frequently,Please rate your experiences using the smoke test feedback-This feedback was useful,How did you use this feedback? What was it especially helpful or not helpful for?, ,Please rate your experiences using the additional feedback (artifact quality and focus area)-I used this feedback frequently,Please rate your experiences using the additional feedback (artifact quality and focus area)-This feedback was useful,How did you use this feedback? What was it especially helpful or not helpful for?,"How did the bucket grading system affect your implementation strategy? If it did not, you may spe...","When your deliverable was assigned a bucket label (i.e. Beginning, Acquiring, Developing, Profici...","Reflect on your interaction with bucket grading this semester. What were any positives, negatives...",CWL,LocationLatitude,LocationLongitude,LocationAccuracy
