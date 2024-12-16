@@ -1,4 +1,7 @@
 {
+  "name": "csv-munge",
+  "version": "0.5.1",
+  "description": "A simple tool for munging CSV to TS objects",
   "engines": {
     "node": ">= 18.12"
   },
